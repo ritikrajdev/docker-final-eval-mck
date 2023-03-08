@@ -1,0 +1,135 @@
+services:
+  ###########################################################
+  # Auth
+  ###########################################################
+  auth-postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_USER: postgres
+      PGUSER: postgres
+      POSTGRES_DB: users
+    volumes:
+      - ../volumes/users:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready
+      interval: 10s
+      retries: 6
+
+  auth-redis:
+    image: redis
+
+  auth-db-migrations:
+    build:
+      context: ../user-auth
+      dockerfile: Dockerfile.migrations
+    environment:
+      NODE_ENV: docker-dev
+      DB_HOST: auth-postgres
+      DB_NAME: users
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      DB_PORT: 5432
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+
+  auth-service:
+    build:
+      context: ../user-auth
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: docker-dev
+      DB_HOST: auth-postgres
+      DB_NAME: users
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      DB_PORT: 5432
+
+      REDIS_HOST: auth-redis
+      REDIS_PORT: 6379
+
+      PORT: 4000
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+      auth-redis:
+        condition: service_started
+      auth-db-migrations:
+        condition: service_completed_successfully
+    ports:
+      - 4000:4000
+
+  ###########################################################
+  # Backend
+  ###########################################################
+  backend-postgres:
+    image: postgres
+    environment:
+      POSTGRES_PASSWORD: 123456
+      POSTGRES_USER: postgres
+      PGUSER: postgres
+      POSTGRES_DB: users
+    volumes:
+      - ../volumes/backend:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready
+      interval: 10s
+      retries: 6
+
+  backend-db-migrations:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile.migrations
+    environment:
+      NODE_ENV: docker-dev
+      DB_HOST: backend-postgres
+      DB_NAME: users
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      DB_PORT: 5432
+    depends_on:
+      backend-postgres:
+        condition: service_healthy
+
+  backend-service:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: docker-dev
+      DB_HOST: backend-postgres
+      DB_NAME: users
+      DB_USER: postgres
+      DB_PASSWORD: 123456
+      DB_PORT: 5432
+
+      PORT: 8000
+
+      AUTH_SERVER_BASE_URL: http://auth-service:4000
+
+    depends_on:
+      backend-postgres:
+        condition: service_healthy
+      backend-db-migrations:
+        condition: service_completed_successfully
+      auth-service:
+        condition: service_started
+    ports:
+      - 8000:8000
+
+  ###########################################################
+  # Frontend
+  ###########################################################
+  frontend-service:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    environment:
+      REACT_APP_BACKEND_SERVER_BASE_URL: http://backend-service:8000
+      REACT_APP_AUTH_SERVER_BASE_URL: http://auth-service:4000
+    depends_on:
+      backend-service:
+        condition: service_started
+    ports:
+      - 3000:80
