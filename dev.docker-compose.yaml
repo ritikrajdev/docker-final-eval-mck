@@ -34,7 +34,7 @@ services:
       auth-postgres:
         condition: service_healthy
     working_dir: /app
-    entrypoint: npm run migrate
+    entrypoint: sh -c 'npm i && npm run migrate'
 
   auth-service:
     image: node:19-alpine
@@ -63,7 +63,7 @@ services:
     ports:
       - 4000:4000
     working_dir: /app
-    entrypoint: npm run dev
+    entrypoint: sh -c 'npm i && npm run dev'
 
 
   ###########################################################
@@ -98,7 +98,7 @@ services:
       backend-postgres:
         condition: service_healthy
     working_dir: /app
-    entrypoint: npm run migrate
+    entrypoint: sh -c 'npm i && npm run migrate'
 
   backend-service:
     image: node:19-alpine
@@ -126,7 +126,7 @@ services:
     ports:
       - 8000:8000
     working_dir: /app
-    entrypoint: npm run dev
+    entrypoint: sh -c 'npm i && npm run dev'
 
 
   ###########################################################
@@ -146,4 +146,4 @@ services:
     ports:
       - 3000:3000
     working_dir: /app
-    entrypoint: npm start
+    entrypoint: sh -c 'npm i && npm start'
