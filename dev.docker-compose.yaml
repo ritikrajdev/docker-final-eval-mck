@@ -136,8 +136,8 @@ services:
     image: node:19-alpine
     environment:
       REACT_APP_NODE_ENV: docker-dev
-      REACT_APP_BACKEND_SERVER_BASE_URL: http://backend-service:8000
-      REACT_APP_AUTH_SERVER_BASE_URL: http://auth-service:4000
+      REACT_APP_BACKEND_SERVER_BASE_URL: http://localhost:8000
+      REACT_APP_AUTH_SERVER_BASE_URL: http://localhost:4000
     volumes:
       - ../frontend/:/app
     depends_on:
